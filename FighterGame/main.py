@@ -329,7 +329,7 @@ class Game:
 
     def boss_event(self):
         print(f"Day {self.day}: A boss fight has started!")
-        boss = Fighter("Boss", 200 + self.day * 6, 150 + self.day * 5)
+        boss = Fighter("Boss", 200 + self.day * 5, 150 + self.day * 6)
         self.turn_based_combat([boss])
 
 
