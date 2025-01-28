@@ -578,10 +578,28 @@ class Game:
 
     def display_combatants(self, group_name, fighters):
         print(f"\n{group_name}:")
-        for fighter in fighters:
-            print(f"  {fighter}")
+        # get terminal height for both windows and linux
+        if platform.system() == "Windows":
+            rows, columns = os.popen('mode con', 'r').read().split()[1:3]
+        else:
+            rows, columns = os.popen('stty size', 'r').read().split()
+        # two modes , compact and full
+        if int(rows) < 30:
+            for fighter in fighters:
+                fighterTitle = f"{fighter.name} the {fighter.title} {fighter.fighter_class}"
+                sword_info = f"Sword: +{fighter.sword} Attack" if fighter.sword else "No Sword"
+                shield_info = f"Shield: +{fighter.shield} Defense" if fighter.shield else "No Shield"
+                trait_info = f" | Traits: {', '.join(fighter.traits)} "
+                print(f"  {fighterTitle} - Attack: {fighter.attack}, Defense: {fighter.defense} | Items: {sword_info}, {shield_info} {trait_info}")
+        else:
+            for fighter in fighters:
+                print(f"  {fighter}")
+                sword_info = f"    {fighter.sword} Attack" if fighter.sword else "No Sword"
+                shield_info = f"    {fighter.shield} Defense" if fighter.shield else "No Shield"
+                print(f"    {sword_info}, {shield_info}")
+                print(f"    Traits: {', '.join(fighter.traits)}")
 
-    def display_team(self, show_items=True, show_traits=True):
+    def display_compact_team(self, show_items=True, show_traits=True):
         print("\nYour Team:")
         for i, fighter in enumerate(self.team, start=1):
             fighterTitle = f"{fighter.name} the {fighter.title} {fighter.fighter_class}"
@@ -596,6 +614,30 @@ class Game:
             else:
                 trait_info = ""
             print(f"{i}. {fighterTitle} - Attack: {fighter.attack}, Defense: {fighter.defense}{item_info}{trait_info}")
+    
+    def display_full_team(self, show_items=True, show_traits=True):
+        print("\nYour Team:")
+        for fighter in self.team:
+            print(f"  {fighter}")
+            if show_items:
+                sword_info = f"    {fighter.sword} Attack" if fighter.sword else "No Sword"
+                shield_info = f"    {fighter.shield} Defense" if fighter.shield else "No Shield"
+                print(f"    {sword_info}, {shield_info}")
+            if show_traits:
+                print(f"    Traits: {', '.join(fighter.traits)}")
+
+    def display_team(self, show_items=True, show_traits=True):
+        # get terminal hight for both windows and linux
+        if platform.system() == "Windows":
+            rows, columns = os.popen('mode con', 'r').read().split()[1:3]
+        else:
+            rows, columns = os.popen('stty size', 'r').read().split()
+        # two modes , compact and full
+        if int(rows) < 30:
+            self.display_compact_team(show_items, show_traits)
+        else:
+            self.display_full_team(show_items, show_traits)
+
 
     def play(self):
         while True:  # Keep restarting the game on defeat
