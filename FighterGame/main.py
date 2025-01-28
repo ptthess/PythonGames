@@ -48,7 +48,7 @@ class Fighter:
         self.sword = None  # Stores the equipped sword stats (int)
         self.shield = None  # Stores the equipped shield stats (int)
 
-    def take_damage(self, damage):
+    def take_damage(self, damage, attacker):
         if self.defense > 0:
             damage_to_defense = min(damage, self.defense)
             self.defense -= damage_to_defense
@@ -65,8 +65,15 @@ class Fighter:
                 self.attack = 0
         if "Unstoppable" in self.traits:
             self.defense += 5
+        if "Swift" in attacker.traits:
+            attacker.attack += 5
+        
         if self.sword or self.shield:
             self.check_destroy_items()
+        if not self.alive:
+            print(f"{self.name} has been defeated!")
+            attacker.upgrade_title()
+            time.sleep(1)
 
     def equip_item(self, item_type, stat_bonus):
         if item_type == "sword":
@@ -369,7 +376,7 @@ class Game:
             if random.random() <= 0.1:  # 10% chance the fighter is free
                 cost = 0
             fighter_options.append({
-                "fighter": Fighter(name, attack, defense, fighter_class=fighter_class, maxTraits),
+                "fighter": Fighter(name, attack, defense, fighter_class=fighter_class),
                 "cost": cost,
                 "sold": False  # Track whether the fighter is sold
             })
@@ -509,36 +516,19 @@ class Game:
 
             def combat_turn(attacker, targets, is_team):
                 if attacker.alive and any(t.alive for t in targets):
-                    if attacker.fighter_class == "Healer":
-                        if len([f for f in self.team if f.alive]) == 1:
-                            target = random.choice([f for f in self.team if f.alive])
-                            damage = attacker.calculate_damage()
-                            print(f"{attacker.name} the {attacker.title} {attacker.fighter_class} attacks {target.name} for {damage} damage!")
-                            target.take_damage(damage)
-                            if not target.alive:
-                                print(f"{target.name} has been defeated!")
-                                attacker.upgrade_title()
-                                time.sleep(1)
-                        else:
-                            attacker.heal_or_buff(self.team if is_team else targets)
+                    if attacker.fighter_class == "Healer" and len([f for f in self.team if f.alive]) > 1:
+                        attacker.heal_or_buff(self.team if is_team else targets)
+                    elif attacker.fighter_class == "Mage":
+                        damage = attacker.calculate_damage()
+                        print(f"{attacker.name} the {attacker.title} {attacker.fighter_class} attacks all enemies for {damage} damage!")
+                        for target in targets:
+                            if target.alive:
+                                target.take_damage(damage, attacker)
                     else:
-                        if attacker.fighter_class == "Mage":
-                            damage = attacker.calculate_damage()
-                            print(f"{attacker.name} the {attacker.title} {attacker.fighter_class} attacks all enemies for {damage} damage!")
-                            for target in targets:
-                                if target.alive:
-                                    target.take_damage(damage)
-                                    if not target.alive:
-                                        print(f"{target.name} has been defeated!")
-                                        attacker.upgrade_title()
-                        else:
-                            target = random.choice([t for t in targets if t.alive])
-                            damage = attacker.calculate_damage()
-                            print(f"{attacker.name} the {attacker.title} {attacker.fighter_class} attacks {target.name} for {damage} damage!")
-                            target.take_damage(damage)
-                            if not target.alive:
-                                print(f"{target.name} has been defeated!")
-                                attacker.upgrade_title()
+                        target = random.choice([t for t in targets if t.alive])
+                        damage = attacker.calculate_damage()
+                        print(f"{attacker.name} the {attacker.title} {attacker.fighter_class} attacks {target.name} for {damage} damage!")
+                        target.take_damage(damage, attacker)
                     time.sleep(1)
 
             # Team's turn to attack
