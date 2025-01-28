@@ -44,7 +44,7 @@ class Fighter:
             "Perceptive": f"Attack 2 enemies instead of 1 dealing 55% damage to each"
         }
         # Randomly assign 1-3 unique traits to the fighter, there cannot be duplicate traits
-        self.traits = random.sample(self.unique_traits.keys(), random.randint(1, maxTraits))
+        self.traits = random.sample(list(self.unique_traits.keys()), random.randint(1, maxTraits))
         self.sword = None  # Stores the equipped sword stats (int)
         self.shield = None  # Stores the equipped shield stats (int)
 
@@ -132,12 +132,12 @@ class Fighter:
     def calculate_damage(self):
         """Calculate attack damage based on class-specific traits."""
         if self.fighter_class == "Berserker":
-            return random.randint(self.attack, int(self.attack * 1.5))
+            return random.randint(self.attack, int(self.attack * 1.4))
         elif self.fighter_class == "Tank":
             return random.randint(self.attack // 2, self.attack)
         elif self.fighter_class == "Rogue":
-            critical_chance = 0.3
-            damage = random.randint(self.attack // 2, self.attack)
+            critical_chance = 0.25
+            damage = random.randint(round(self.attack/1.5), self.attack)
             if random.random() < critical_chance:
                 damage *= 2
                 print(f"Critical hit by {self.name}!")
@@ -154,18 +154,16 @@ class Fighter:
         else:
             return self.attack  # Default case
 
-    def heal_or_buff(self, team):
-        """Special action for Healer to heal or buff teammates."""
-        if self.fighter_class == "Healer" and self.alive:
-            target = random.choice([f for f in team if f.alive])
-            heal_amount = random.randint(round(self.attack/7), round(self.attack/4))
-            #Check if the target's defense is going to be greater than the healer's attack stat after they are healed.
-            if target.defense + heal_amount > self.attack:
-                target.defense = self.attack
-            else:
-                target.defense += heal_amount
-            print(f"{self.name} healed {target.name} for {heal_amount} defense!")
-            time.sleep(1)
+    def HealTeammate(self, team):
+        target = min([f for f in team if f.alive and f != self], key=lambda f: f.defense)
+        heal_amount = random.randint(round(self.attack/7), round(self.attack/3))
+        #Check if the target's defense is going to be greater than the healer's attack stat after they are healed.
+        if target.defense + heal_amount > self.attack:
+            target.defense = self.attack
+        else:
+            target.defense += heal_amount
+        print(f"{self.name} healed {target.name} for {heal_amount} defense!")
+        time.sleep(1)
 
     def __str__(self):
         sword_info = f"Sword: +{self.sword} Attack" if self.sword else "No Sword"
@@ -246,7 +244,7 @@ class Game:
 
     def shop_event(self):
         print(f"You encounter a shop!")
-        self.display_team()
+        self.display_team(show_items=True, show_traits=False)
         items = []
 
         # Generate 3 random items (swords or shields)
@@ -315,7 +313,7 @@ class Game:
                 print(f"You bought the {selected_item['type']} for {item_price} gold!")
                 
                 # Let the player equip the item
-                self.display_team()
+                self.display_team(show_items=True, show_traits=False)
                 fighter_choice = input(f"Choose a fighter to equip the {selected_item['type']} (1-{len(self.team)}) or 0 to discard: ").strip()
                 clear_screen()
                 if fighter_choice.isdigit() and 1 <= int(fighter_choice) <= len(self.team):
@@ -383,7 +381,7 @@ class Game:
 
         while True:
             clear_screen()
-            self.display_team()
+            self.display_team(show_items=False, show_traits=True)
             print(f"\nDay {self.day}: You have encountered potential recruits!")
             print(f"Your gold: {self.gold}\n")
 
@@ -393,7 +391,9 @@ class Game:
                     print(f"{i}. SOLD")
                 else:
                     cost_display = "Willing to be on your team for free!" if option["cost"] == 0 else f"{option['cost']} gold"
-                    print(f"{i}. {option['fighter']} - Cost: {cost_display}")
+                    #Print fighter without showing equipped sword or shield and show the fighter's unique traits
+                    traits_display = ", ".join(option['fighter'].traits)
+                    print(f"{i}. {option['fighter'].name} the {option['fighter'].fighter_class} - Attack: {option['fighter'].attack}, Defense: {option['fighter'].defense} | Traits: {traits_display} - Costs: {cost_display}.")
 
             print("\nYou may recruit multiple fighters, as long as you can afford them and stay within the team limit.")
             choice = input("Enter the number of the fighter to recruit (1-3) or 0 to skip: ").strip()
@@ -433,7 +433,7 @@ class Game:
             else:
                 # If the team is full, ask the player to replace an existing fighter
                 print("\nYour team is full! Choose a fighter to replace or skip recruitment.")
-                self.display_team()
+                self.display_team(show_items=False, show_traits=True)
                 while True:
                     replace_choice = input("Enter the number of the fighter to replace (1-3) or 0 to skip: ").strip()
                     if not replace_choice.isdigit() or not (0 <= int(replace_choice) <= len(self.team)):
@@ -465,7 +465,7 @@ class Game:
             fighter.attack += attack_boost
             fighter.defense += defense_boost
             print(f"{fighter.name} ({fighter.title}) gained {attack_boost} Attack and {defense_boost} Defense through meditation.")
-        self.display_team()
+        self.display_team(show_items=False, show_traits=False)
 
     def find_item_event(self):
         clear_screen()
@@ -477,7 +477,7 @@ class Game:
 
         # Let the player choose a fighter to give the item to
         print("\nCurrent Fighter Stats:")
-        self.display_team()
+        self.display_team(show_items=True, show_traits=False)
         choice = int(input(f"Choose a fighter to give the {item_name} (1-{len(self.team)}) or 0 to skip: ")) - 1
 
         clear_screen()
@@ -517,7 +517,7 @@ class Game:
             def combat_turn(attacker, targets, is_team):
                 if attacker.alive and any(t.alive for t in targets):
                     if attacker.fighter_class == "Healer" and len([f for f in self.team if f.alive]) > 1:
-                        attacker.heal_or_buff(self.team if is_team else targets)
+                        attacker.HealTeammate(self.team if is_team else targets)
                     elif attacker.fighter_class == "Mage":
                         damage = attacker.calculate_damage()
                         print(f"{attacker.name} the {attacker.title} {attacker.fighter_class} attacks all enemies for {damage} damage!")
@@ -555,7 +555,7 @@ class Game:
                 goldMultiplier = 3
                 itemChance = 0.15
             earnedGold = self.day * goldMultiplier
-            self.gold = earnedGold
+            self.gold += earnedGold
             if random.random() <= itemChance:
                 self.find_item_event()
             print(f"You earned {earnedGold} gold! Current gold: {self.gold}")
@@ -569,10 +569,21 @@ class Game:
         for fighter in fighters:
             print(f"  {fighter}")
 
-    def display_team(self):
+    def display_team(self, show_items=True, show_traits=True):
         print("\nYour Team:")
         for i, fighter in enumerate(self.team, start=1):
-            print(f"{i}. {fighter}")  # Uses the updated __str__ method of Fighter
+            fighterTitle = f"{fighter.name} the {fighter.title} {fighter.fighter_class}"
+            if show_items:
+                sword_info = f"Sword: +{fighter.sword} Attack" if fighter.sword else "No Sword"
+                shield_info = f"Shield: +{fighter.shield} Defense" if fighter.shield else "No Shield"
+                item_info = f" | Items: {sword_info}, {shield_info} "
+            else:
+                item_info = ""
+            if show_traits:
+                trait_info = f" | Traits: {', '.join(fighter.traits)} "
+            else:
+                trait_info = ""
+            print(f"{i}. {fighterTitle} - Attack: {fighter.attack}, Defense: {fighter.defense}{item_info}{trait_info}")
 
     def play(self):
         while True:  # Keep restarting the game on defeat
