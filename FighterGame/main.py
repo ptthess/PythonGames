@@ -4,7 +4,7 @@ import os
 import platform
 
 class Fighter:
-    def __init__(self, name, attack, defense, title="Novice",  fighter_class="Berserker"):
+    def __init__(self, name, attack, defense, title="Novice",  fighter_class="Berserker", maxTraits=3):
         self.name = name
         self.attack = attack
         self.defense = defense
@@ -26,6 +26,25 @@ class Fighter:
             "Godlike",        # Level 12
             "Divine",        # Level 13 
         ]
+        self.unique_traits = {
+            # Unique traits that fighters can have 1-3 of when they are created
+            "Unstoppable": f"Gains 5 defense when attacked.",
+            "Swift": f"Gains 5 attack when attacking.",
+            "Fierce": f"Has a 5% chance of attacking twice.",
+            "Cunning": f"Has a 5% chance to dodge attacks.",
+            "Mighty": f"Has a 5% chance to deal double damage.",
+            "Stalwart": f"Gains 2 more defense and damage when meditating.",
+            "Thorns": f"Deal 3% damage back to attacker, minimum of 1 damage.",
+            "Vengeful": f"1% chance to attack an enemy that attacked you.",
+            "Mystic": f"Gain 5% of damage dealt as defense.",
+            "Untrustworthy": f"Reflect 10% of damage taken onto teammates.",
+            "Noble": f"Gains 8 defense and 8 attack when another fighter is defeated",
+            "Savage": f"Deal 10% more damage when attacking defense stat",
+            "Brutal": f"Deal 10% more damage when attacking attack stat",
+            "Perceptive": f"Attack 2 enemies instead of 1 dealing 55% damage to each"
+        }
+        # Randomly assign 1-3 unique traits to the fighter, there cannot be duplicate traits
+        self.traits = random.sample(self.unique_traits.keys(), random.randint(1, maxTraits))
         self.sword = None  # Stores the equipped sword stats (int)
         self.shield = None  # Stores the equipped shield stats (int)
 
@@ -34,7 +53,7 @@ class Fighter:
             damage_to_defense = min(damage, self.defense)
             self.defense -= damage_to_defense
             if (self.fighter_class == "Tank"):
-                damage = max(0, damage - round(damage_to_defense/2))
+                damage = max(0, damage - damage_to_defense//2)
             else:
                 damage = max(0, damage - damage_to_defense)
 
@@ -44,6 +63,8 @@ class Fighter:
             if self.attack <= 0:
                 self.alive = False
                 self.attack = 0
+        if "Unstoppable" in self.traits:
+            self.defense += 5
         if self.sword or self.shield:
             self.check_destroy_items()
 
@@ -348,7 +369,7 @@ class Game:
             if random.random() <= 0.1:  # 10% chance the fighter is free
                 cost = 0
             fighter_options.append({
-                "fighter": Fighter(name, attack, defense, fighter_class=fighter_class),
+                "fighter": Fighter(name, attack, defense, fighter_class=fighter_class, maxTraits),
                 "cost": cost,
                 "sold": False  # Track whether the fighter is sold
             })
