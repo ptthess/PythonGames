@@ -303,11 +303,9 @@ class Game:
                 print("You don't have enough gold to buy this item!")
 
 
-
-
     def fight_event(self):
         enemy_count = random.randint(1, 5)
-        stat_multiplier = {1: 1.4, 2: 0.8, 3: 0.6, 4: 0.4, 5: 0.2}  # Scaling multipliers based on the number of enemies
+        stat_multiplier = {1: 1.2, 2: 1.0, 3: 0.85, 4: 0.75, 5: 0.65}
 
         enemies = [
             Fighter(
@@ -329,7 +327,7 @@ class Game:
 
     def boss_event(self):
         print(f"Day {self.day}: A boss fight has started!")
-        boss = Fighter("Boss", 200 + self.day * 5, 150 + self.day * 6)
+        boss = Fighter("Boss", 150 + self.day * 5, 200 + self.day * 6)
         self.turn_based_combat([boss])
 
 
