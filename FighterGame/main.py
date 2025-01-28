@@ -479,12 +479,12 @@ class Game:
         print("\nCurrent Fighter Stats:")
         self.display_team(show_items=True, show_traits=False)
         choice = int(input(f"Choose a fighter to give the {item_name} (1-{len(self.team)}) or 0 to skip: ")) - 1
-
-        clear_screen()
-        if 0 <= choice < len(self.team):
-            self.team[choice].equip_item(item_type, stat_bonus)
-        else:
-            print("Item skipped.")
+        if choice.isdigit() and 1 <= int(choice) <= len(self.team):
+            clear_screen()
+            if 0 <= choice < len(self.team):
+                self.team[choice].equip_item(item_type, stat_bonus)
+            else:
+                print("Item skipped.")
 
 
     def fighter_title_bonus(self, title):
@@ -524,11 +524,22 @@ class Game:
                         for target in targets:
                             if target.alive:
                                 target.take_damage(damage, attacker)
+                        if "Fierce" in attacker.traits and random.random() < 0.05:
+                            print(f"{attacker.name} attacks again due to Fierce trait!")
+                            for target in targets:
+                                if target.alive:
+                                    target.take_damage(damage, attacker)
                     else:
                         target = random.choice([t for t in targets if t.alive])
                         damage = attacker.calculate_damage()
                         print(f"{attacker.name} the {attacker.title} {attacker.fighter_class} attacks {target.name} for {damage} damage!")
                         target.take_damage(damage, attacker)
+                        if "Fierce" in attacker.traits and random.random() < 0.05:
+                            print(f"{attacker.name} attacks again due to Fierce trait!")
+                            target = random.choice([t for t in targets if t.alive])
+                            damage = attacker.calculate_damage()
+                            print(f"{attacker.name} the {attacker.title} {attacker.fighter_class} attacks {target.name} for {damage} damage!")
+                            target.take_damage(damage, attacker)
                     time.sleep(1)
 
             # Team's turn to attack
@@ -543,16 +554,17 @@ class Game:
             self.team = [fighter for fighter in self.team if fighter.alive]
             # Remove defeated enemies from the enemy group
             enemies = [enemy for enemy in enemies if enemy.alive]
-
+            #Pause and wait for any input so the player can see the results of the round
+            input("\nPress Enter to continue to the next round...")
         print("\n--- Battle Results ---")
         if all(not e.alive for e in enemies):
             print("You won the fight!")
             #Check if the enemy is a boss.
             if len(enemies) == 1 and enemies[0].name == "Boss":
-                goldMultiplier = 5
+                goldMultiplier = 6
                 itemChance = 0.20
             else:
-                goldMultiplier = 3
+                goldMultiplier = 4
                 itemChance = 0.15
             earnedGold = self.day * goldMultiplier
             self.gold += earnedGold
