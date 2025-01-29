@@ -38,7 +38,7 @@ class Fighter:
             "Vengeful": f"1% chance to attack an enemy that attacked you.",
             "Mystic": f"Gain 3% of damage dealt as defense.",
             "Untrustworthy": f"Reflect 10% of damage taken onto another teammate.",
-            "Noble": f"Gains 8 defense and 8 attack when another fighter is defeated",
+            "Noble": f"Gain 10 attack and 15 defense when this fighter defeats a player.",
             "Savage": f"Deal 10% more damage when attacking defense stat",
             "Brutal": f"Deal 10% more damage when attacking attack stat",
             "Perceptive": f"Attack 2 enemies instead of 1 dealing 55% damage to each"
@@ -53,13 +53,14 @@ class Fighter:
             print(f"{self.name} dodged the attack!")
             return
         if self.defense > 0:
+            if "Savage" in attacker.traits:
+                damage = round(damage * 1.1)
             damage_to_defense = min(damage, self.defense)
             self.defense -= damage_to_defense
             if (self.fighter_class == "Tank"):
                 damage = max(0, damage - damage_to_defense//2)
             else:
                 damage = max(0, damage - damage_to_defense)
-
         if damage > 0:
             damage_to_attack = damage // 3
             self.attack -= damage_to_attack
@@ -89,6 +90,10 @@ class Fighter:
             self.check_destroy_items()
         if not self.alive:
             print(f"{self.name} has been defeated!")
+            if "Noble" in attacker.traits:
+                attacker.attack += 10
+                attacker.defense += 15
+                print(f"{attacker.name} has gained 10 attack and 15 defense after defeating the enemy due to Noble trait!")
             attacker.upgrade_title()
             time.sleep(1)
 
@@ -608,9 +613,9 @@ class Game:
         print(f"\n{group_name}:")
         # get terminal height for both windows and linux
         if platform.system() == "Windows":
-            rows, columns = os.popen('mode con', 'r').read().split()[1:3]
+            rows = os.popen('mode con').read().split()[6]
         else:
-            rows, columns = os.popen('stty size', 'r').read().split()
+            rows = os.popen('stty size', 'r').read().split()[0]
         # two modes , compact and full
         if int(rows) < 30:
             for fighter in fighters:
@@ -657,9 +662,9 @@ class Game:
     def display_team(self, show_items=True, show_traits=True):
         # get terminal hight for both windows and linux
         if platform.system() == "Windows":
-            rows, columns = os.popen('mode con', 'r').read().split()[1:3]
+            rows = os.popen('mode con').read().split()[6]
         else:
-            rows, columns = os.popen('stty size', 'r').read().split()
+            rows = os.popen('stty size', 'r').read().split()[0]
         # two modes , compact and full
         if int(rows) < 30:
             self.display_compact_team(show_items, show_traits)
