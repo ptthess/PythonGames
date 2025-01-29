@@ -36,8 +36,8 @@ class Fighter:
             "Stalwart": f"Gains 2 more defense and damage when meditating.",
             "Thorns": f"Deal 3% damage back to attacker, minimum of 1 damage.",
             "Vengeful": f"1% chance to attack an enemy that attacked you.",
-            "Mystic": f"Gain 5% of damage dealt as defense.",
-            "Untrustworthy": f"Reflect 10% of damage taken onto teammates.",
+            "Mystic": f"Gain 3% of damage dealt as defense.",
+            "Untrustworthy": f"Reflect 10% of damage taken onto another teammate.",
             "Noble": f"Gains 8 defense and 8 attack when another fighter is defeated",
             "Savage": f"Deal 10% more damage when attacking defense stat",
             "Brutal": f"Deal 10% more damage when attacking attack stat",
@@ -48,7 +48,10 @@ class Fighter:
         self.sword = None  # Stores the equipped sword stats (int)
         self.shield = None  # Stores the equipped shield stats (int)
 
-    def take_damage(self, damage, attacker):
+    def take_damage(self, damage, attacker, from_thorns=False):
+        if "Cunning" in self.traits and random.random() < 0.05:
+            print(f"{self.name} dodged the attack!")
+            return
         if self.defense > 0:
             damage_to_defense = min(damage, self.defense)
             self.defense -= damage_to_defense
@@ -67,6 +70,20 @@ class Fighter:
             self.defense += 5
         if "Swift" in attacker.traits:
             attacker.attack += 5
+        if "Thorns" in self.traits and from_thorns == False:
+            damage_to_attacker = max(1, round(damage * 0.03))
+            attacker.take_damage(damage_to_attacker, self, from_thorns=True)
+        if "Vengeful" in self.traits and random.random() < 0.01:
+            print(f"{self.name} attacks back due to Vengeful trait!")
+            attacker.take_damage(damage, self)
+        if "Mystic" in attacker.traits:
+            attacker.defense += round(damage * 0.03)
+        if "Untrustworthy" in self.traits:
+            #Pick a random teammate to reflect damage to that isn't the current fighter
+            teammate = random.choice([f for f in self.team if f.alive and f != self])
+            damage_to_teammate = max(1, round(damage * 0.1))
+            teammate.take_damage(damage_to_teammate, self)
+            print(f"{self.name} reflects {damage_to_teammate} damage to {teammate.name} due to Untrustworthy trait!")
         
         if self.sword or self.shield:
             self.check_destroy_items()
@@ -130,29 +147,35 @@ class Fighter:
                     print(f"{self.name} has earned the prestigious title of {self.title}!")
                     
     def calculate_damage(self):
+        FinalDamage = 0
+        MightyMultiplier = 1
+        #Check if player has mighty trait, if so they have a 5% chance to deal double damage
+        if "Mighty" in self.traits and random.random() < 0.05:
+            MightyMultiplier = 2
         """Calculate attack damage based on class-specific traits."""
         if self.fighter_class == "Berserker":
-            return random.randint(self.attack, int(self.attack * 1.4))
+            FinalDamage = random.randint(self.attack, int(self.attack * 1.4))
         elif self.fighter_class == "Tank":
-            return random.randint(self.attack // 2, self.attack)
+            FinalDamage = random.randint(self.attack // 2, self.attack)
         elif self.fighter_class == "Rogue":
             critical_chance = 0.25
             damage = random.randint(round(self.attack/1.5), self.attack)
             if random.random() < critical_chance:
                 damage *= 2
                 print(f"Critical hit by {self.name}!")
-            return damage
+            FinalDamage = damage
         elif self.fighter_class == "Mage":
             # Mages deal damage to all enemies at once
-            return random.randint(round(self.attack/8), round(self.attack/4))
+            FinalDamage = random.randint(round(self.attack/8), round(self.attack/4))
         elif self.fighter_class == "Healer":
             #Check if healer is the only one alive, if so they will attack instead of heal.
             if len([f for f in self.team if f.alive]) == 1:
-                return random.randint(self.attack//4, self.attack//2)
+                FinalDamage = random.randint(self.attack//4, self.attack//2)
             else:
-                return 0  # Healers don't deal damage unless they are the only one alive.
+                FinalDamage = 0  # Healers don't deal damage unless they are the only one alive.
         else:
-            return self.attack  # Default case
+            FinalDamage = self.attack  # Default case
+        return round(FinalDamage * MightyMultiplier)
 
     def HealTeammate(self, team):
         target = min([f for f in team if f.alive and f != self], key=lambda f: f.defense)
@@ -462,6 +485,9 @@ class Game:
             max_boost = 10 + self.fighter_title_bonus(fighter.title)
             attack_boost = random.randint(5, max_boost)
             defense_boost = random.randint(5, max_boost)
+            if "Stalwart" in fighter.traits:
+                attack_boost += 2
+                defense_boost += 2
             fighter.attack += attack_boost
             fighter.defense += defense_boost
             print(f"{fighter.name} ({fighter.title}) gained {attack_boost} Attack and {defense_boost} Defense through meditation.")
