@@ -36,12 +36,13 @@ class Fighter:
             "Stalwart": f"Gains 2 more defense and damage when meditating.",
             "Thorns": f"Deal 3% damage back to attacker, minimum of 1 damage.",
             "Vengeful": f"1% chance to counterattack an enemy that attacked you.",
-            "Mystic": f"Gain 3% of damage dealt as defense.",
-            "Untrustworthy": f"Reflect 15% of damage taken onto another teammate.",
+            "Mystic": f"Gain 5% of damage dealt as defense.",
+            "Treacherous": f"Reflect 15% of damage taken onto another teammate.",
             "Noble": f"Gain 10 attack and 15 defense when this fighter defeats a player.",
             "Savage": f"Deal 10% more damage when attacking defense stat.",
             "Brutal": f"Deal 10% more damage when attacking attack stat.",
-            "Greedy": f"Increase gold earned by 5% after each fight."
+            "Greedy": f"Increase gold earned by 5% after each fight.",
+            "Berserk": f"Deal 10% more damage when defense is 0."
         }
         # Randomly assign traits to the player with a maximum of 3 traits, with a 10% chance of 3 traits, 20% chance of 2 traits, 30% chance of 1 trait, and 40% chance of no traits. No duplicate traits allowed.
         if TotalTraits == 0:
@@ -90,8 +91,8 @@ class Fighter:
             attacker.take_damage(VengefulDamage, self, targetTeam, from_thorns=False)
             print(f"{self.name} counterattacks {attacker.name} for {VengefulDamage} damage due to Vengeful trait!")
         if "Mystic" in attacker.traits:
-            attacker.defense += round(damage * 0.03)
-        if "Untrustworthy" in self.traits:
+            attacker.defense += round(damage * 0.05)
+        if "Treacherous" in self.traits:
             #Pick a random teammate to reflect damage to that isn't the current fighter, if the fighter is the only one left, they will just take the damage.
             if len([f for f in targetTeam if f.alive and f != self]) > 1:
                 teammate = random.choice([f for f in targetTeam if f.alive and f != self])
@@ -100,8 +101,8 @@ class Fighter:
                     self.defense += damage_to_teammate
                 elif self.attack > 0:
                     self.attack += round(damage_to_teammate/3)
-                teammate.take_damage(damage_to_teammate, self, targetTeam, from_thorns=False)
-                print(f"{self.name} reflects {damage_to_teammate} damage to {teammate.name} due to Untrustworthy trait!")
+                teammate.take_damage(damage_to_teammate, teammate, targetTeam, from_thorns=False)
+                print(f"{self.name} reflects {damage_to_teammate} damage to {teammate.name} due to Treacherous trait!")
         
         if self.sword or self.shield:
             self.check_destroy_items()
@@ -110,7 +111,7 @@ class Fighter:
             if "Noble" in attacker.traits:
                 attacker.attack += 10
                 attacker.defense += 15
-                print(f"{attacker.name} has gained 10 attack and 15 defense after defeating the enemy due to Noble trait!")
+                print(f"{attacker.name} has gained 10 attack and 15 defense after defeating the enemy due to the Noble trait!")
             attacker.upgrade_title()
             time.sleep(1)
 
@@ -177,23 +178,23 @@ class Fighter:
         #Check if player has mighty trait, if so they have a 5% chance to deal double damage
         if "Mighty" in self.traits and random.random() < 0.05:
             MightyMultiplier = 2
-        """Calculate attack damage based on class-specific traits."""
+            print(f"{self.name} doubles their damage of the next attack with the Mighty perk!")
         if self.fighter_class == "Berserker":
-            FinalDamage = random.randint(self.attack, round(self.attack * 1.4))
+            FinalDamage = random.randint(round(self.attack*.8), round(self.attack * 1.4))
         elif self.fighter_class == "Tank":
-            FinalDamage = random.randint(self.attack // 2, self.attack)
+            FinalDamage = random.randint(round(self.attack*.5), self.attack)
         elif self.fighter_class == "Rogue":
             critical_chance = 0.25
-            damage = random.randint(round(self.attack/3), round(self.attack * 1.6))
+            damage = random.randint(round(self.attack*.2), round(self.attack * 1.6))
             if random.random() < critical_chance:
                 damage *= 2
                 print(f"Critical hit by {self.name}!")
             FinalDamage = damage
         elif self.fighter_class == "Mage":
             # Mages deal damage to all enemies at once
-            FinalDamage = random.randint(round(self.attack/7), round(self.attack/3))
+            FinalDamage = random.randint(round(self.attack*.2), round(self.attack*.4))
         elif self.fighter_class == "Healer":
-            FinalDamage = random.randint(self.attack//4, self.attack//2)
+            FinalDamage = random.randint(round(self.attack*.3), round(self.attack*.5))
         else:
             FinalDamage = self.attack  # Default case
         return round(FinalDamage * MightyMultiplier)
@@ -238,7 +239,7 @@ class Game:
             "Saber", "Commander", "Demolisher", "Wraith", "Assassin", "Sparrow", "Valkyrie", "Banshee", "Vindicator", "Tracker",
             "Hunter", "Dominator", "Ranger", "Scout", "Warlord", "Conqueror", "Tactician", "Gunner", "Marksman", "Brawler",
             "Invoker", "Guardian", "Shaman", "Oracle", "Visionary", "Crusader", "Pathfinder", "Striker", "Pioneer", "Fury",
-            "Breaker", "Rogue", "Shadowblade", "Darkfang", "Bloodfang", "Venomblade", "Ironclad", "Steelsoul", "Blackthorn", "Ironfang",
+            "Breaker", "Shadowblade", "Darkfang", "Bloodfang", "Venomblade", "Ironclad", "Steelsoul", "Blackthorn", "Ironfang",
             "Silentfang", "Stormbringer", "Thundersoul", "Darkflame", "Flamefang", "Lunarblade", "Solarfang", "Voidwalker", "Netherfang", "Celestial",
             "Eclipse", "Nova", "Radiant", "Dawnblade", "Duskfang", "Starlight", "Moonshadow", "Sunfire", "Nightstalker", "Lightbringer",
             "Skybreaker", "Earthshaker", "Seafang", "Wavebringer", "Tsunami", "Cyclonefang", "Hurricane", "Typhoon", "Avalanche", "Quake",
@@ -302,9 +303,10 @@ class Game:
             if item_type == "sword":
                 base_price = round(stat_bonus * 1.50)
             elif item_type == "shield":
-                base_price = round(stat_bonus * 1.10)
+                base_price = round(stat_bonus * 0.9)
             else:
                 base_price = 0
+            base_price = round(base_price * .90)
             sale = None
             discount_percentage = 0
 
@@ -430,7 +432,7 @@ class Game:
             attack = random.randint(25 + self.day, 100 + round(self.day * 2.5))
             defense = random.randint(35 + self.day, 120 + round(self.day * 2.5))
             fighter_class = random.choice(fighter_classes)
-            cost = round(((attack*1.5) + (defense*1.1)))
+            cost = round(((attack*1.5) + (defense*0.9)))
             if random.random() <= 0.1:  # 10% chance the fighter is free
                 cost = 0
             fighter_options.append({
@@ -534,20 +536,25 @@ class Game:
         clear_screen()
         item_type = random.choice(["sword", "shield"])  # Determine item type
         max_stat_bonus = 10 + (self.day*3)  # Stat bonus scales with the current day
-        stat_bonus = random.randint(5, max_stat_bonus)  # Random stat bonus
+        stat_bonus = random.randint(5+self.day, max_stat_bonus)  # Random stat bonus
         item_name = f"{item_type.capitalize()} (+{stat_bonus} {'Attack' if item_type == 'sword' else 'Defense'})"
         print(f"\nDay {self.day}: You found a {item_name}!")
 
         # Let the player choose a fighter to give the item to
         print("\nCurrent Fighter Stats:")
         self.display_team(show_items=True, show_traits=False)
-        choice = input(f"Choose a fighter to give the {item_name} (1-{len(self.team)}) or 0 to skip: ").strip()
-        if not choice.isdigit() or not (0 <= int(choice) <= len(self.team)):
-            clear_screen()
-            if 0 <= choice < len(self.team):
+        while True:
+            choice = input(f"Choose a fighter to give the {item_name} (1-{len(self.team)}) or 0 to skip: ").strip()
+            if choice == "0":
+                print("Item discarded.")
+                return
+            if choice.isdigit() and 1 <= int(choice) <= len(self.team):
+                choice = int(choice) - 1
+                clear_screen()
                 self.team[choice].equip_item(item_type, stat_bonus)
+                return
             else:
-                print("Item skipped.")
+                print("Invalid input. Please choose a valid option.")
 
 
     def fighter_title_bonus(self, title):
