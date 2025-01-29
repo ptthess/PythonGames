@@ -525,7 +525,9 @@ class Game:
                             if target.alive:
                                 target.take_damage(damage, attacker)
                         if "Fierce" in attacker.traits and random.random() < 0.05:
+                            damage = attacker.calculate_damage()
                             print(f"{attacker.name} attacks again due to Fierce trait!")
+                            print(f"{attacker.name} the {attacker.title} {attacker.fighter_class} attacks all enemies for {damage} damage!")
                             for target in targets:
                                 if target.alive:
                                     target.take_damage(damage, attacker)
