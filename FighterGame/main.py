@@ -70,13 +70,12 @@ class Fighter:
             if "Savage" in attacker.traits:
                 damage = round(damage * 1.1)
             if self.fighter_class == "Tank":
-                damage_to_defense = min(damage, self.defense * 2)
-                self.defense -= round(damage_to_defense / 2)
-                damage = max(0, damage - damage_to_defense)
+                damage_to_defense = min(damage, round(self.defense * 1.5))
+                self.defense -= round(damage_to_defense / 1.5)
             else:
                 damage_to_defense = min(damage, self.defense)
                 self.defense -= damage_to_defense
-                damage = max(0, damage - damage_to_defense)
+            damage = max(0, damage - damage_to_defense)
         if damage > 0:
             if "Brutal" in attacker.traits:
                 damage = round(damage * 1.1)
@@ -187,7 +186,7 @@ class Fighter:
         if self.fighter_class == "Berserker":
             FinalDamage = random.randint(round(self.attack*.8), round(self.attack * 1.4))
         elif self.fighter_class == "Tank":
-            FinalDamage = random.randint(round(self.attack*.5), self.attack)
+            FinalDamage = random.randint(round(self.attack*.4), round(self.attack*.9))
         elif self.fighter_class == "Rogue":
             critical_chance = 0.25
             damage = random.randint(round(self.attack*.2), round(self.attack * 1.6))
@@ -228,11 +227,11 @@ class Fighter:
 class Game:
     def __init__(self):
         self.day = 1
-        self.team = [Fighter(self.get_player_name(), 150, 100, "Apprentice", "Berserker", 2)]
+        self.team = [Fighter(self.get_player_name(), 100, 150, "Apprentice", "Berserker", 2)]
         self.max_team_size = 5
         self.running = True
         self.first_event = True  # A flag to ensure the first event is a recruitment event
-        self.gold = 300 
+        self.gold = 350
         self.fighter_names = [
             "Shadow", "Blaze", "Steel", "Fang", "Bolt", "Hawk", "Viper", "Phantom", "Claw",
             "Dagger", "Storm", "Venom", "Ghost", "Flame", "Hunter", "Wolf", "Lynx", "Raven", "Scorpion",
@@ -397,31 +396,55 @@ class Game:
             possible_classes=["Berserker", "Tank", "Rogue", "Mage"]
         else:
             possible_classes=["Berserker", "Tank", "Healer", "Rogue", "Mage"]
+            enemies = []
+            for i in range(enemy_count):
+                attack = random.randint(60 + round(self.day * 3), 120 + self.day * 5)
+                defense = random.randint(70 + self.day * 4, 150 + self.day * 6)
+                max_attack = 120 + self.day * 5
+                max_defense = 150 + self.day * 6
+                attack_percent = (attack / max_attack) * 100
+                defense_percent = (defense / max_defense) * 100
+                average_percent = (attack_percent + defense_percent) / 2
 
-        enemies = [
-            Fighter(
-                f"Enemy {i+1}",
-                int(random.randint(60 + round(self.day * 3), 130 + self.day * 5) * stat_multiplier[enemy_count]),
-                int(random.randint(70 + self.day * 4, 150 + self.day * 6) * stat_multiplier[enemy_count]),
-                #Random title chance for enemies, as more days progress the chance for a better title increases
-                title=random.choices(
-                    ["Novice", "Trainee", "Apprentice", "Journeyman", "Adept", "Veteran", "Elite", "Champion", "Master", "Legend"],
-                    weights=[50, 20, 10, 5, 5, 3, 3, 2, 1, 1],
-                    k=1
-                )[0],
-                fighter_class=random.choice(possible_classes),
-                TotalTraits=0
-            )
-            for i in range(enemy_count)
-        ]
+                if average_percent >= 90:
+                    title = "Legend"
+                elif average_percent >= 80:
+                    title = "Master"
+                elif average_percent >= 70:
+                    title = "Champion"
+                elif average_percent >= 60:
+                    title = "Elite"
+                elif average_percent >= 50:
+                    title = "Veteran"
+                elif average_percent >= 40:
+                    title = "Adept"
+                elif average_percent >= 30:
+                    title = "Journeyman"
+                elif average_percent >= 20:
+                    title = "Apprentice"
+                elif average_percent >= 10:
+                    title = "Trainee"
+                else:
+                    title = "Novice"
+
+                enemies.append(
+                Fighter(
+                    f"Enemy {i+1}",
+                    int(attack * stat_multiplier[enemy_count]),
+                    int(defense * stat_multiplier[enemy_count]),
+                    title=title,
+                    fighter_class=random.choice(possible_classes),
+                    TotalTraits=0
+                )
+                )
         print(f"\nDay {self.day}: A fight has started against {enemy_count} enemies!")
         self.turn_based_combat(enemies)
 
     def boss_event(self):
         print(f"Day {self.day}: A boss fight has started!")
         boss = Fighter("Boss", 
-                        120 + self.day * 4, 
-                        190 + self.day * 6, 
+                        110 + self.day * 4, 
+                        180 + self.day * 6, 
                         #Random title chance for enemies, as more days progress the chance for a better title increases
                         title=random.choices(["Novice", "Trainee", "Apprentice", "Journeyman", "Adept", "Veteran", "Elite", "Champion", "Master", "Legend"],weights=[50, 20, 10, 5, 5, 3, 3, 2, 1, 1],k=1)[0],
                         fighter_class=random.choice(["Berserker", "Tank", "Healer", "Rogue", "Mage"]),
