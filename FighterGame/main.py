@@ -2,7 +2,10 @@ import random
 import time
 import os
 import platform
-
+#Known issues:
+#1. Enemy can reflect full thorns damage even if their health is below the damage dealt.
+#2. After buying an item the shop no longer shows the fighter information.
+#3.
 class Fighter:
     def __init__(self, name, attack, defense, title, fighter_class, TotalTraits):
         self.name = name
@@ -66,11 +69,13 @@ class Fighter:
         if self.defense > 0:
             if "Savage" in attacker.traits:
                 damage = round(damage * 1.1)
-            damage_to_defense = min(damage, self.defense)
-            self.defense -= damage_to_defense
-            if (self.fighter_class == "Tank"):
-                damage = max(0, damage - damage_to_defense//2)
+            if self.fighter_class == "Tank":
+                damage_to_defense = min(damage, self.defense * 2)
+                self.defense -= round(damage_to_defense / 2)
+                damage = max(0, damage - damage_to_defense)
             else:
+                damage_to_defense = min(damage, self.defense)
+                self.defense -= damage_to_defense
                 damage = max(0, damage - damage_to_defense)
         if damage > 0:
             if "Brutal" in attacker.traits:
@@ -388,6 +393,11 @@ class Game:
         enemy_count = random.randint(1, 5)
         stat_multiplier = {1: 1, 2: 0.75, 3: 0.55, 4: 0.40, 5: 0.30}
 
+        if enemy_count == 1:
+            possible_classes=["Berserker", "Tank", "Rogue", "Mage"]
+        else:
+            possible_classes=["Berserker", "Tank", "Healer", "Rogue", "Mage"]
+
         enemies = [
             Fighter(
                 f"Enemy {i+1}",
@@ -399,7 +409,7 @@ class Game:
                     weights=[50, 20, 10, 5, 5, 3, 3, 2, 1, 1],
                     k=1
                 )[0],
-                fighter_class=random.choice(["Berserker", "Tank", "Healer", "Rogue", "Mage"]),
+                fighter_class=random.choice(possible_classes),
                 TotalTraits=0
             )
             for i in range(enemy_count)
@@ -410,8 +420,8 @@ class Game:
     def boss_event(self):
         print(f"Day {self.day}: A boss fight has started!")
         boss = Fighter("Boss", 
-                        150 + self.day * 4, 
-                        200 + self.day * 6, 
+                        120 + self.day * 4, 
+                        190 + self.day * 6, 
                         #Random title chance for enemies, as more days progress the chance for a better title increases
                         title=random.choices(["Novice", "Trainee", "Apprentice", "Journeyman", "Adept", "Veteran", "Elite", "Champion", "Master", "Legend"],weights=[50, 20, 10, 5, 5, 3, 3, 2, 1, 1],k=1)[0],
                         fighter_class=random.choice(["Berserker", "Tank", "Healer", "Rogue", "Mage"]),
@@ -429,8 +439,8 @@ class Game:
         fighter_options = []
         for _ in range(3):
             name = self.fighter_names.pop(random.randint(0, len(self.fighter_names) - 1))
-            attack = random.randint(25 + self.day, 100 + round(self.day * 2.5))
-            defense = random.randint(35 + self.day, 120 + round(self.day * 2.5))
+            attack = random.randint(25 + self.day, 70 + round(self.day * 2.5))
+            defense = random.randint(35 + self.day, 100 + round(self.day * 2.5))
             fighter_class = random.choice(fighter_classes)
             cost = round(((attack*1.5) + (defense*0.9)))
             if random.random() <= 0.1:  # 10% chance the fighter is free
@@ -633,21 +643,24 @@ class Game:
             print("You won the fight!")
             #Check if the enemy is a boss.
             if len(enemies) == 1 and enemies[0].name == "Boss":
-                goldMultiplier = 6
+                goldMultiplier = 5
                 itemChance = 0.20
             else:
-                goldMultiplier = 4
+                goldMultiplier = 3
                 itemChance = 0.15
-            earnedGold = self.day * goldMultiplier
+            earnedGold = self.day * goldMultiplier + 35
+            greedyCount = 0
             for fighter in list(self.team):
                 if fighter.alive:
                     for trait in fighter.traits:
                         if trait == "Greedy":
-                            earnedGold += round(earnedGold * 0.05)
+                            greedyCount += 1
+            if greedyCount > 0:
+                earnedGold += round(earnedGold * (0.05*greedyCount))
             #Gold reward variation between 40% and 60% of the base reward
             earnedGold = random.randint(round(earnedGold * 0.40), round(earnedGold * 0.60))
             self.gold += earnedGold
-            print(f"You earned {earnedGold} gold! Current gold: {self.gold}")
+            print(f"You found {earnedGold} gold! Current gold: {self.gold}")
             if random.random() <= itemChance:
                 self.find_item_event()
         else:
